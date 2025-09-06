@@ -1,6 +1,6 @@
 import streamlit as st
 from assistant import get_groq_assistant
-
+import tempfile
 from langchain_community.document_loaders.pdf import PyPDFLoader
 from langchain.document_loaders.web_base import WebBaseLoader
 
@@ -29,7 +29,7 @@ def main()->None:
         restart_assistant()
     embeddings_model=st.sidebar.selectbox(
         "Select Embeddings",
-        options=["gemini-1.5-flash","text-embedding-3-small"],
+        options=["all-MiniLM-L6-v2","text-embedding-3-small"],
         help="When you change the embeddings model, the documents will need to be added again"
     )
     if "embeddings_model" not in st.session_state:
@@ -65,8 +65,11 @@ def main()->None:
         "Add a PDF",type="pdf", key=st.session_state["file_uploader_key"]
 
     )
-    if uploaded_file:
-        loader = PyPDFLoader(uploaded_file)
+    if uploaded_file is not None:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
+            tmp.write(uploaded_file.getbuffer())
+            tmp_path = tmp.name
+        loader = PyPDFLoader(tmp_path)
         pdf_docs=loader.load()
         if pdf_docs:
             rag_assistant.retriever.vectorstore.add_documents(pdf_docs)
